@@ -105,6 +105,7 @@ class FoodSegmenter:
             self.model = SegformerForSemanticSegmentation.from_pretrained(
                 str(weights_dir),
                 use_safetensors=True,
+                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
             )
             self._finetuned = True
         else:
@@ -162,27 +163,48 @@ class FoodSegmenter:
                 }
         """
         orig_w, orig_h = image.size
-        image_rgb = image.convert("RGB")
+        image_rgb = image.convert("RGB")          # original size — used for overlay
+        image_orig_rgb = image_rgb                 # keep reference at original size
+
+        # ── Resize large images to save VRAM ────────────────────────────────
+        MAX_SIDE = 640
+        if max(orig_w, orig_h) > MAX_SIDE:
+            scale = MAX_SIDE / max(orig_w, orig_h)
+            proc_w = int(orig_w * scale)
+            proc_h = int(orig_h * scale)
+            image_rgb = image_rgb.resize((proc_w, proc_h), Image.LANCZOS)
+        else:
+            proc_w, proc_h = orig_w, orig_h
 
         inputs = self.processor(images=image_rgb, return_tensors="pt")
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        if self.device == "cuda":
+            inputs = {k: v.to(self.device, dtype=torch.float16) for k, v in inputs.items()}
+        else:
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
         outputs = self.model(**inputs)
 
-        # logits: (1, num_classes, H/4, W/4)  → upsample to original size
-        logits = outputs.logits  # (1, C, h, w)
-        upsampled = F.interpolate(
-            logits,
-            size=(orig_h, orig_w),
-            mode="bilinear",
-            align_corners=False,
-        )  # (1, C, H, W)
+        # ── Softmax on small logits FIRST, then upsample ─────────────────────
+        # This avoids allocating a huge (1, C, H, W) float tensor on GPU.
+        logits = outputs.logits.float()  # (1, C, h, w) — cast back to float32
+        probs_small = torch.softmax(logits, dim=1)           # (1, C, h, w)
+        conf_small, mask_small = probs_small[0].max(dim=0)  # each (h, w)
 
-        probs = torch.softmax(upsampled, dim=1)[0]   # (C, H, W)
-        conf_map, pred_mask = probs.max(dim=0)       # each (H, W)
+        # Move to CPU before upsample to avoid VRAM spike
+        conf_small_cpu = conf_small.cpu().unsqueeze(0).unsqueeze(0)  # (1,1,h,w)
+        mask_small_cpu = mask_small.cpu().unsqueeze(0).unsqueeze(0).float()  # (1,1,h,w)
 
-        pred_mask_np = pred_mask.cpu().numpy().astype(np.int32)
-        conf_map_np  = conf_map.cpu().numpy()
+        conf_map_np = F.interpolate(
+            conf_small_cpu, size=(orig_h, orig_w), mode="bilinear", align_corners=False
+        )[0, 0].numpy()
+        pred_mask_np = F.interpolate(
+            mask_small_cpu, size=(orig_h, orig_w), mode="nearest"
+        )[0, 0].numpy().astype(np.int32)
+
+        # Free GPU memory immediately
+        del outputs, logits, probs_small, conf_small, mask_small
+        if self.device == "cuda":
+            torch.cuda.empty_cache()
 
         # Apply confidence threshold: low-confidence pixels → background
         pred_mask_np[conf_map_np < self.confidence_thr] = 0
@@ -218,7 +240,9 @@ class FoodSegmenter:
         # Sort by pixel count descending
         segments.sort(key=lambda s: s["pixel_count"], reverse=True)
 
-        overlay = self._make_overlay(image_rgb, pred_mask_np, alpha=160)
+        # pred_mask_np is interpolated back to orig_h x orig_w,
+        # so composite over the original-size image, not the downscaled one.
+        overlay = self._make_overlay(image_orig_rgb, pred_mask_np, alpha=160)
 
         return {
             "mask":     pred_mask_np,

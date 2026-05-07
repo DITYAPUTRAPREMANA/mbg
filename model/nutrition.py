@@ -286,8 +286,19 @@ def _row_to_nutrition(row: dict, food_name: str) -> dict:
     }
 
 
+# ── OFF circuit breaker ───────────────────────────────────────────────────────
+_off_fail_count  = 0
+_OFF_MAX_FAILS   = 2   # disable OFF after this many consecutive errors
+_off_disabled    = False
+
+
 def _query_off(search_term: str) -> Optional[dict]:
-    """Query Open Food Facts and return normalised nutrition dict."""
+    """Query Open Food Facts with a circuit-breaker to avoid repeated timeouts."""
+    global _off_fail_count, _off_disabled
+
+    if _off_disabled:
+        return None
+
     try:
         params = {
             "search_terms": search_term,
@@ -297,7 +308,8 @@ def _query_off(search_term: str) -> Optional[dict]:
             "page_size": 3,
             "fields": "product_name,nutriments",
         }
-        resp = requests.get(OFF_API_BASE, params=params, timeout=OFF_TIMEOUT)
+        # Use (connect_timeout, read_timeout) tuple — fail fast
+        resp = requests.get(OFF_API_BASE, params=params, timeout=(3, OFF_TIMEOUT))
         if resp.status_code != 200:
             return None
 
@@ -309,6 +321,7 @@ def _query_off(search_term: str) -> Optional[dict]:
             if calories is None:
                 continue
             sodium_raw = _to_float(nut.get("sodium_100g"))
+            _off_fail_count = 0  # reset on success
             return {
                 "food_name":      product.get("product_name", search_term),
                 "calories":       calories,
@@ -321,7 +334,14 @@ def _query_off(search_term: str) -> Optional[dict]:
                 "source":         "Open Food Facts",
             }
     except Exception as e:
+        _off_fail_count += 1
         logger.warning(f"OFF API error for '{search_term}': {e}")
+        if _off_fail_count >= _OFF_MAX_FAILS:
+            _off_disabled = True
+            logger.warning(
+                f"OFF API disabled after {_off_fail_count} consecutive failures. "
+                "Using local DB only for the rest of this session."
+            )
     return None
 
 
