@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBG API Tester | Food Segmentation & Nutrition</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0c10;
+            --surface: #161b22;
+            --glass: rgba(22, 27, 34, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --accent: #3fb950;
+            --accent-glow: rgba(63, 185, 80, 0.3);
+            --text-main: #e6edf3;
+            --text-dim: #8b949e;
+            --error: #f85149;
+            --card-radius: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(63, 185, 80, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 80% 70%, rgba(56, 139, 253, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #fff 0%, #8b949e 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        p.subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+
+        .config-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            padding: 1.5rem;
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input[type="text"] {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1.3rem;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+            box-shadow: 0 4px 12px var(--accent-glow);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+        }
+
+        button.secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: none;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: var(--accent);
+            background: rgba(63, 185, 80, 0.02);
+        }
+
+        .upload-area input[type="file"] {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        #preview-container {
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+            display: none;
+            position: relative;
+        }
+
+        #preview-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .status-idle {
+            background: #30363d;
+            color: #8b949e;
+        }
+
+        .status-loading {
+            background: #bf8700;
+            color: #fff;
+        }
+
+        .status-success {
+            background: #238636;
+            color: #fff;
+        }
+
+        .status-error {
+            background: #da3633;
+            color: #fff;
+        }
+
+        .json-viewer {
+            background: #0d1117;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #7ee787;
+            overflow: auto;
+            max-height: 500px;
+            white-space: pre-wrap;
+        }
+
+        .result-overlay-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .result-image-wrapper {
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        #overlay-result {
+            width: 100%;
+            display: none;
+        }
+
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #fff;
+            border-bottom-color: transparent;
+            border-radius: 50%;
+            display: inline-block;
+            animation: rotation 1s linear infinite;
+        }
+
+        @keyframes rotation {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .nutrition-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+
+        .tag span {
+            color: var(--accent);
+            font-weight: 600;
+            margin-right: 4px;
+        }
+
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .food-item-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1rem;
+        }
+
+        .food-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .food-label {
+            font-weight: 700;
+            font-size: 1rem;
+            color: var(--accent);
+            text-transform: capitalize;
+        }
+
+        .confidence-badge {
+            font-size: 0.7rem;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <header>
+            <h1>MBG API Control Center</h1>
+            <p class="subtitle">Real-time Food Segmentation & Nutrition Analysis</p>
+        </header>
+
+        <div class="config-panel">
+            <div class="input-group">
+                <label for="api-url">API Endpoint Base URL</label>
+                <input type="text" id="api-url" placeholder="http://localhost:8000" value="http://localhost:8000">
+            </div>
+            <button id="btn-health" class="secondary">
+                <span>Check Health</span>
+            </button>
+            <div id="health-status" class="status-badge status-idle">Idle</div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Left: Upload & JSON -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Analysis Request</span>
+                    <span id="analysis-status" class="status-badge status-idle">Ready</span>
+                </div>
+                <div class="card-body">
+                    <div class="upload-area" id="drop-zone">
+                        <span class="upload-icon">📸</span>
+                        <p><strong>Click to upload</strong> or drag and drop</p>
+                        <p style="font-size: 0.8rem; color: var(--text-dim); margin-top: 0.5rem;">PNG, JPG, WEBP (Max
+                            10MB)</p>
+                        <input type="file" id="file-input" accept="image/*">
+                    </div>
+
+                    <div id="preview-container">
+                        <img id="img-preview" src="" alt="Preview">
+                        <button id="btn-analyze" style="position: absolute; bottom: 1rem; right: 1rem; margin: 0;">
+                            Analyze Image
+                        </button>
+                    </div>
+
+                    <div id="json-result-container" style="display: none;">
+                        <label>JSON Response</label>
+                        <div id="json-result" class="json-viewer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Visualization -->
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Visual Result</span>
+                </div>
+                <div class="card-body">
+                    <div id="placeholder-text" style="color: var(--text-dim); text-align: center; padding: 4rem 0;">
+                        Upload and analyze an image to see the segmentation results here.
+                    </div>
+
+                    <div class="result-overlay-container" id="result-visuals" style="display: none;">
+                        <div class="result-image-wrapper">
+                            <img id="overlay-result" src="" alt="Overlay Result">
+                        </div>
+
+                        <div id="aggregate-stats">
+                            <label>Aggregate Nutrition (Total Meal)</label>
+                            <div class="nutrition-tags" id="nutrition-tags">
+                                <!-- Tags injected here -->
+                            </div>
+                        </div>
+
+                        <div id="detected-items-container">
+                            <label style="margin-top: 1rem; display: block;">Detected Items</label>
+                            <div class="item-list" id="item-list">
+                                <!-- Items injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiUrlInput = document.getElementById('api-url');
+        const btnHealth = document.getElementById('btn-health');
+        const healthStatus = document.getElementById('health-status');
+
+        const fileInput = document.getElementById('file-input');
+        const dropZone = document.getElementById('drop-zone');
+        const previewContainer = document.getElementById('preview-container');
+        const imgPreview = document.getElementById('img-preview');
+        const btnAnalyze = document.getElementById('btn-analyze');
+        const analysisStatus = document.getElementById('analysis-status');
+
+        const jsonResultContainer = document.getElementById('json-result-container');
+        const jsonResult = document.getElementById('json-result');
+        const resultVisuals = document.getElementById('result-visuals');
+        const overlayResult = document.getElementById('overlay-result');
+        const placeholderText = document.getElementById('placeholder-text');
+        const nutritionTags = document.getElementById('nutrition-tags');
+        const itemList = document.getElementById('item-list');
+
+        let selectedFile = null;
+
+        // Health Check
+        btnHealth.addEventListener('click', async () => {
+            const baseUrl = apiUrlInput.value.replace(/\/$/, "");
+            healthStatus.textContent = 'Checking...';
+            healthStatus.className = 'status-badge status-loading';
+
+            try {
+                const response = await fetch(`${baseUrl}/health`, {
+                    headers: { 'ngrok-skip-browser-warning': '69420' }
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    healthStatus.textContent = 'Online';
+                    healthStatus.className = 'status-badge status-success';
+                    console.log('Health:', data);
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                healthStatus.textContent = 'Offline';
+                healthStatus.className = 'status-badge status-error';
+            }
+        });
+
+        // File Selection
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files[0]) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            selectedFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imgPreview.src = e.target.result;
+                dropZone.style.display = 'none';
+                previewContainer.style.display = 'block';
+
+                // Reset previous results
+                jsonResultContainer.style.display = 'none';
+                resultVisuals.style.display = 'none';
+                placeholderText.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Analysis
+        btnAnalyze.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            const baseUrl = apiUrlInput.value.replace(/\/$/, "");
+            btnAnalyze.disabled = true;
+            btnAnalyze.innerHTML = '<span class="loader"></span> Analyzing...';
+            analysisStatus.textContent = 'Processing';
+            analysisStatus.className = 'status-badge status-loading';
+
+            try {
+                // 1. Get JSON Data
+                const formData = new FormData();
+                formData.append('file', selectedFile);
+
+                const jsonResp = await fetch(`${baseUrl}/analyze/`, {
+                    method: 'POST',
+                    headers: { 'ngrok-skip-browser-warning': '69420' },
+                    body: formData
+                });
+
+                if (!jsonResp.ok) throw new Error('Analysis failed');
+                const data = await jsonResp.json();
+
+                // 2. Get Overlay Image
+                const overlayFormData = new FormData();
+                overlayFormData.append('file', selectedFile);
+                const overlayResp = await fetch(`${baseUrl}/analyze/overlay`, {
+                    method: 'POST',
+                    headers: { 'ngrok-skip-browser-warning': '69420' },
+                    body: overlayFormData
+                });
+
+                if (overlayResp.ok) {
+                    const blob = await overlayResp.blob();
+                    overlayResult.src = URL.createObjectURL(blob);
+                    overlayResult.style.display = 'block';
+                }
+
+                // Update UI
+                jsonResult.textContent = JSON.stringify(data, null, 2);
+                jsonResultContainer.style.display = 'block';
+
+                renderNutrition(data.aggregate_nutrition);
+                renderItems(data.items);
+
+                placeholderText.style.display = 'none';
+                resultVisuals.style.display = 'flex';
+
+                analysisStatus.textContent = 'Success';
+                analysisStatus.className = 'status-badge status-success';
+
+            } catch (err) {
+                console.error(err);
+                analysisStatus.textContent = 'Error';
+                analysisStatus.className = 'status-badge status-error';
+                alert('Error analyzing image. Make sure the API is running and CORS is enabled.');
+            } finally {
+                btnAnalyze.disabled = false;
+                btnAnalyze.textContent = 'Analyze Image';
+            }
+        });
+
+        function renderNutrition(nutrition) {
+            nutritionTags.innerHTML = '';
+            if (!nutrition || nutrition.source === 'not_found') {
+                nutritionTags.innerHTML = '<p style="color: var(--text-dim); font-size: 0.9rem;">No nutrition data available for the detected items.</p>';
+                return;
+            }
+
+            const metrics = [
+                { label: 'Calories', val: nutrition.calories, unit: 'kcal' },
+                { label: 'Protein', val: nutrition.protein_g, unit: 'g' },
+                { label: 'Fat', val: nutrition.fat_g, unit: 'g' },
+                { label: 'Carbs', val: nutrition.carbohydrate_g, unit: 'g' },
+                { label: 'Fiber', val: nutrition.fiber_g, unit: 'g' }
+            ];
+
+            metrics.forEach(m => {
+                if (m.val !== null && m.val !== undefined) {
+                    const div = document.createElement('div');
+                    div.className = 'tag';
+                    div.innerHTML = `<span>${m.label}:</span> ${m.val.toFixed(1)} ${m.unit}`;
+                    nutritionTags.appendChild(div);
+                }
+            });
+        }
+
+        function renderItems(items) {
+            itemList.innerHTML = '';
+            if (items.length === 0) {
+                itemList.innerHTML = '<p style="color: var(--text-dim); font-size: 0.9rem;">No food items detected by the AI model.</p>';
+                return;
+            }
+
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'food-item-card';
+
+                const nut = item.nutrition;
+                const nutSummary = `Cals: ${nut.calories ?? '?'} | P: ${nut.protein_g ?? '?'}g | F: ${nut.fat_g ?? '?'}g | C: ${nut.carbohydrate_g ?? '?'}g`;
+
+                card.innerHTML = `
+                    <div class="food-item-header">
+                        <span class="food-label">${item.label}</span>
+                        <span class="confidence-badge">${(item.confidence * 100).toFixed(0)}% Match</span>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim);">
+                        ${nutSummary}
+                    </div>
+                `;
+                itemList.appendChild(card);
+            });
+        }
+    </script>
+</body>
+
+</html>
