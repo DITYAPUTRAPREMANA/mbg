@@ -15,9 +15,10 @@ from typing import Optional
 
 import torch
 import requests as req_lib
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, Security, status
+from fastapi.security.api_key import APIKeyHeader
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse 
 from PIL import Image
 from loguru import logger
 from pydantic import BaseModel
@@ -87,6 +88,8 @@ async def lifespan(app: FastAPI):
     
     # Start ngrok tunnel
     try:
+        # Jika Anda memiliki authtoken ngrok (API Key ngrok), Anda bisa memasukkannya di sini:
+        ngrok.set_auth_token("3DAaFtGgXbzwtT3sI0OaYj3A8BM_7ikWLm9YbaNSJLdHreTy")
         tunnel = ngrok.connect("8000", "http")
         # Extract the public URL from the tunnel object
         _ngrok_url = str(tunnel).split('"')[1] if '"' in str(tunnel) else str(tunnel)
@@ -125,6 +128,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Security (API Key) ───────────────────────────────────────────────────────
+
+# Tentukan API Key Anda di sini
+API_KEY = "RAHASIA_MBG_2026"
+API_KEY_NAME = "x-api-key"
+
+api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
+
+async def get_api_key(api_key: str = Security(api_key_header)):
+    if api_key == API_KEY:
+        return api_key
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="API Key tidak valid atau tidak diberikan (Gunakan header 'x-api-key')"
+    )
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -184,7 +204,10 @@ async def health():
 
 
 @app.post("/analyze/", response_model=AnalyzeResponse, tags=["inference"])
-async def analyze_upload(file: UploadFile = File(...)):
+async def analyze_upload(
+    file: UploadFile = File(...),
+    api_key: str = Depends(get_api_key)
+):
     """Upload an image for food segmentation and nutrition analysis."""
     data  = await file.read()
     image = _load_image(data)
@@ -194,7 +217,8 @@ async def analyze_upload(file: UploadFile = File(...)):
 
 @app.post("/analyze/url", response_model=AnalyzeResponse, tags=["inference"])
 async def analyze_url(
-    image_url: str = Query(..., description="Public URL of a food image")
+    image_url: str = Query(..., description="Public URL of a food image"),
+    api_key: str = Depends(get_api_key)
 ):
     """Analyse a food image from a URL."""
     try:
@@ -208,7 +232,10 @@ async def analyze_url(
 
 
 @app.post("/analyze/overlay", tags=["inference"])
-async def analyze_overlay(file: UploadFile = File(...)):
+async def analyze_overlay(
+    file: UploadFile = File(...),
+    api_key: str = Depends(get_api_key)
+):
     """
     Upload an image and receive a PNG with the coloured segmentation
     mask blended over the original (no JSON — image bytes only).
@@ -226,6 +253,7 @@ async def analyze_overlay(file: UploadFile = File(...)):
 async def search_nutrition(
     q:     str = Query(..., description="Search query"),
     limit: int = Query(10, ge=1, le=50),
+    api_key: str = Depends(get_api_key)
 ):
     assert _nutrition_svc is not None
     results = _nutrition_svc.search(q, limit)
@@ -233,19 +261,22 @@ async def search_nutrition(
 
 
 @app.get("/nutrition/lookup/{food_name}", tags=["nutrition"])
-async def lookup_nutrition(food_name: str):
+async def lookup_nutrition(
+    food_name: str,
+    api_key: str = Depends(get_api_key)
+):
     assert _nutrition_svc is not None
     return _nutrition_svc.lookup(food_name)
 
 
 @app.get("/nutrition/stats", tags=["nutrition"])
-async def nutrition_stats():
+async def nutrition_stats(api_key: str = Depends(get_api_key)):
     assert _nutrition_db is not None
     return {"total_records": _nutrition_db.count()}
 
 
 @app.get("/classes", tags=["model"])
-async def list_classes():
+async def list_classes(api_key: str = Depends(get_api_key)):
     """Return the full FoodSeg103 class list."""
     from config import FOODSEG103_CLASSES
     return {

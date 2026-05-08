@@ -385,6 +385,10 @@
                 <label for="api-url">API Endpoint Base URL</label>
                 <input type="text" id="api-url" placeholder="http://localhost:8000" value="http://localhost:8000">
             </div>
+            <div class="input-group">
+                <label for="api-key">API Key</label>
+                <input type="text" id="api-key" placeholder="x-api-key" value="RAHASIA_MBG_2026">
+            </div>
             <button id="btn-health" class="secondary">
                 <span>Check Health</span>
             </button>
@@ -457,6 +461,7 @@
 
     <script>
         const apiUrlInput = document.getElementById('api-url');
+        const apiKeyInput = document.getElementById('api-key');
         const btnHealth = document.getElementById('btn-health');
         const healthStatus = document.getElementById('health-status');
 
@@ -485,7 +490,10 @@
 
             try {
                 const response = await fetch(`${baseUrl}/health`, {
-                    headers: { 'ngrok-skip-browser-warning': '69420' }
+                    headers: {
+                        'ngrok-skip-browser-warning': '69420',
+                        'x-api-key': apiKeyInput.value
+                    }
                 });
                 const data = await response.json();
 
@@ -542,7 +550,10 @@
 
                 const jsonResp = await fetch(`${baseUrl}/analyze/`, {
                     method: 'POST',
-                    headers: { 'ngrok-skip-browser-warning': '69420' },
+                    headers: {
+                        'ngrok-skip-browser-warning': '69420',
+                        'x-api-key': apiKeyInput.value
+                    },
                     body: formData
                 });
 
@@ -554,7 +565,10 @@
                 overlayFormData.append('file', selectedFile);
                 const overlayResp = await fetch(`${baseUrl}/analyze/overlay`, {
                     method: 'POST',
-                    headers: { 'ngrok-skip-browser-warning': '69420' },
+                    headers: {
+                        'ngrok-skip-browser-warning': '69420',
+                        'x-api-key': apiKeyInput.value
+                    },
                     body: overlayFormData
                 });
 

@@ -40,6 +40,125 @@ NUMERIC_FIELDS = [
     "carbohydrate_g", "fiber_g", "sugar_g", "sodium_mg",
 ]
 
+# ── FoodSeg103 label → TKPI/common food name alias ───────────────────────────
+# Maps short FoodSeg103 labels to names that exist (or match closely) in the
+# TKPI CSV so the nutrition lookup succeeds even without an exact string match.
+LABEL_ALIASES: dict[str, str] = {
+    # grains / staples
+    "rice":              "Cooked white rice",
+    "noodles":           "Cooked noodles",
+    "pasta":             "Pasta, cooked",
+    "bread":             "White bread",
+    "corn":              "Corn kernels, dried, raw",
+    "hanamaki baozi":    "Steamed bun",
+    "wonton dumplings":  "Wonton",
+    "hamburg":           "Hamburger",
+    "french fries":      "French fries",
+    "pizza":             "Pizza",
+    "pie":               "Pie",
+    "garlic bread":      "Bread, garlic",
+    # proteins
+    "egg":               "Egg, boiled",
+    "steak":             "Beef, cooked",
+    "pork":              "Pork, cooked",
+    "lamb":              "Lamb",
+    "chicken duck":      "Chicken, cooked",
+    "sausage":           "Sausage",
+    "fried meat":        "Fried chicken",
+    "fish":              "Fish, cooked",
+    "shrimp":            "Shrimp",
+    "crab":              "Crab",
+    "shellfish":         "Shellfish",
+    "tofu":              "Tofu",
+    # dairy / sweet
+    "cheese butter":     "Cheese",
+    "milk":              "Cow's milk",
+    "milkshake":         "Milkshake",
+    "ice cream":         "Ice cream",
+    "cake":              "Cake",
+    "chocolate":         "Chocolate",
+    "biscuit":           "Biscuit",
+    "candy":             "Candy",
+    "pudding":           "Pudding",
+    "egg tart":          "Egg tart",
+    "popcorn":           "Popcorn",
+    "macarons":          "Macaron",
+    # fruits
+    "apple":             "Apple",
+    "banana":            "Banana",
+    "orange":            "Orange",
+    "mango":             "Mango",
+    "grape":             "Grape",
+    "watermelon":        "Watermelon",
+    "strawberry":        "Strawberry",
+    "pineapple":         "Pineapple",
+    "avocado":           "Avocado",
+    "kiwi":              "Kiwi fruit",
+    "melon":             "Melon",
+    "pear":              "Pear",
+    "peach":             "Peach",
+    "lemon":             "Lemon",
+    "cherry":            "Cherry",
+    "blueberry":         "Blueberry",
+    "raspberry":         "Raspberry",
+    "apricot":           "Apricot",
+    "fig":               "Fig",
+    "date":              "Date",
+    # vegetables
+    "tomato":            "Tomato",
+    "potato":            "Potato",
+    "carrot":            "Carrot",
+    "cucumber":          "Cucumber",
+    "broccoli":          "Broccoli",
+    "cabbage":           "Cabbage",
+    "lettuce":           "Lettuce",
+    "onion":             "Onion",
+    "garlic":            "Garlic",
+    "ginger":            "Ginger",
+    "eggplant":          "Eggplant",
+    "pumpkin":           "Pumpkin",
+    "cauliflower":       "Cauliflower",
+    "spring onion":      "Spring onion",
+    "celery stick":      "Celery",
+    "asparagus":         "Asparagus",
+    "okra":              "Okra",
+    "pepper":            "Bell pepper",
+    "green beans":       "Green beans",
+    "French beans":      "French beans",
+    "snow peas":         "Snow peas",
+    "bean sprouts":      "Bean sprouts",
+    "white radish":      "Radish",
+    "bamboo shoots":     "Bamboo shoots",
+    "rape":              "Mustard greens",
+    "kelp":              "Kelp",
+    "seaweed":           "Seaweed",
+    "cilantro mint":     "Coriander",
+    # mushrooms
+    "shiitake":          "Shiitake mushroom",
+    "king oyster mushroom": "King oyster mushroom",
+    "enoki mushroom":    "Enoki mushroom",
+    "oyster mushroom":   "Oyster mushroom",
+    "white button mushroom": "Button mushroom",
+    # nuts / legumes
+    "almond":            "Almond",
+    "cashew":            "Cashew",
+    "walnut":            "Walnut",
+    "peanut":            "Peanut",
+    "red beans":         "Red beans",
+    "soy":               "Soybean",
+    "dried cranberries": "Cranberry",
+    "olives":            "Olive",
+    # beverages
+    "coffee":            "Coffee",
+    "tea":               "Tea",
+    "juice":             "Fruit juice",
+    "wine":              "Wine",
+    "soup":              "Soup",
+    # misc
+    "sauce":             "Sauce",
+    "salad":             "Salad",
+}
+
 
 class NutritionDB:
     """SQLite-backed nutrition cache with local CSV seeding."""
@@ -241,19 +360,28 @@ class NutritionService:
         if key in self._mem:
             return self._mem[key]
 
-        # 1. Local DB / CSV
-        result = self.db.lookup(food_name)
-        if result:
-            self._mem[key] = _row_to_nutrition(result, food_name)
-            return self._mem[key]
+        # 0. Resolve FoodSeg103 short label → canonical TKPI name
+        canonical = LABEL_ALIASES.get(key) or LABEL_ALIASES.get(food_name.strip())
+        search_names = [food_name]
+        if canonical and canonical.lower() != key:
+            search_names.insert(0, canonical)
 
-        # 2. Open Food Facts
-        result = _query_off(food_name)
-        if result:
-            result["food_name"] = food_name
-            self.db.save(result)
-            self._mem[key] = result
-            return result
+        # 1. Local DB / CSV  (try canonical alias first, then original label)
+        for name in search_names:
+            result = self.db.lookup(name)
+            if result:
+                out = _row_to_nutrition(result, food_name)
+                self._mem[key] = out
+                return out
+
+        # 2. Open Food Facts (prefer the canonical/alias name for better results)
+        for name in search_names:
+            result = _query_off(name)
+            if result:
+                result["food_name"] = food_name
+                self.db.save(result)
+                self._mem[key] = result
+                return result
 
         empty = dict(EMPTY_NUTRITION)
         empty["food_name"] = food_name
