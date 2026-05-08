@@ -15,8 +15,7 @@ from typing import Optional
 
 import torch
 import requests as req_lib
-from fastapi import FastAPI, File, UploadFile, HTTPException, Query, Depends, Security, status
-from fastapi.security.api_key import APIKeyHeader
+from fastapi import FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse 
 from PIL import Image
@@ -27,7 +26,7 @@ from pyngrok import ngrok
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pipeline import MBGPipeline, get_pipeline
-from nutrition import NutritionDB, NutritionService
+from nutrition import NutritionDB, NutritionService 
 
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
@@ -130,21 +129,6 @@ app.add_middleware(
 )
 
 
-# ── Security (API Key) ───────────────────────────────────────────────────────
-
-# Tentukan API Key Anda di sini
-API_KEY = "RAHASIA_MBG_2026"
-API_KEY_NAME = "x-api-key"
-
-api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
-
-async def get_api_key(api_key: str = Security(api_key_header)):
-    if api_key == API_KEY:
-        return api_key
-    raise HTTPException(
-        status_code=status.HTTP_403_FORBIDDEN,
-        detail="API Key tidak valid atau tidak diberikan (Gunakan header 'x-api-key')"
-    )
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -206,7 +190,6 @@ async def health():
 @app.post("/analyze/", response_model=AnalyzeResponse, tags=["inference"])
 async def analyze_upload(
     file: UploadFile = File(...),
-    api_key: str = Depends(get_api_key)
 ):
     """Upload an image for food segmentation and nutrition analysis."""
     data  = await file.read()
@@ -218,7 +201,6 @@ async def analyze_upload(
 @app.post("/analyze/url", response_model=AnalyzeResponse, tags=["inference"])
 async def analyze_url(
     image_url: str = Query(..., description="Public URL of a food image"),
-    api_key: str = Depends(get_api_key)
 ):
     """Analyse a food image from a URL."""
     try:
@@ -234,7 +216,6 @@ async def analyze_url(
 @app.post("/analyze/overlay", tags=["inference"])
 async def analyze_overlay(
     file: UploadFile = File(...),
-    api_key: str = Depends(get_api_key)
 ):
     """
     Upload an image and receive a PNG with the coloured segmentation
@@ -253,7 +234,6 @@ async def analyze_overlay(
 async def search_nutrition(
     q:     str = Query(..., description="Search query"),
     limit: int = Query(10, ge=1, le=50),
-    api_key: str = Depends(get_api_key)
 ):
     assert _nutrition_svc is not None
     results = _nutrition_svc.search(q, limit)
@@ -263,20 +243,19 @@ async def search_nutrition(
 @app.get("/nutrition/lookup/{food_name}", tags=["nutrition"])
 async def lookup_nutrition(
     food_name: str,
-    api_key: str = Depends(get_api_key)
 ):
     assert _nutrition_svc is not None
     return _nutrition_svc.lookup(food_name)
 
 
 @app.get("/nutrition/stats", tags=["nutrition"])
-async def nutrition_stats(api_key: str = Depends(get_api_key)):
+async def nutrition_stats():
     assert _nutrition_db is not None
     return {"total_records": _nutrition_db.count()}
 
 
 @app.get("/classes", tags=["model"])
-async def list_classes(api_key: str = Depends(get_api_key)):
+async def list_classes():
     """Return the full FoodSeg103 class list."""
     from config import FOODSEG103_CLASSES
     return {
