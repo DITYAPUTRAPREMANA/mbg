@@ -8,7 +8,7 @@ MBG is a mobile application that helps users track their daily nutrition by dete
 
 ## 📱 Overview
 
-MBG (Meal Based Nutrition Guide) is a diet management app designed to make healthy eating accessible and effortless. Using real-time image recognition, users can simply point their camera at any meal to instantly receive a breakdown of ingredients along with their macro and micro nutritional profiles.
+MBG (Meal Based Nutrition Guide) is a diet management app designed to make healthy eating accessible and effortless. Using real-time image recognition, users can simply point their camera at any meal to instantly receive a breakdown of ingredients along with their nutritional profiles.
 
 ---
 
