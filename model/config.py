@@ -231,6 +231,6 @@ FOODSEG103_ANN_TEST  = FOODSEG103_ROOT / "ann_dir" / "test"
 # ── Nutrition / API ──────────────────────────────────────────────────────────
 OFF_API_BASE       = "https://world.openfoodfacts.org/cgi/search.pl"
 OFF_PRODUCT_URL    = "https://world.openfoodfacts.org/api/v0/product/{barcode}.json"
-LOCAL_NUTRITION_CSV = DATA_DIR / "tkpi_2020_english.csv"
+LOCAL_NUTRITION_CSV = DATA_DIR / "tkpi_2020_english (1).csv"
 OFF_TIMEOUT        = 6
 API_TIMEOUT        = 30

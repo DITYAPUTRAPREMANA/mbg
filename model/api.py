@@ -17,7 +17,7 @@ import torch
 import requests as req_lib
 from fastapi import FastAPI, File, UploadFile, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse 
 from PIL import Image
 from loguru import logger
 from pydantic import BaseModel
@@ -26,7 +26,7 @@ from pyngrok import ngrok
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from pipeline import MBGPipeline, get_pipeline
-from nutrition import NutritionDB, NutritionService
+from nutrition import NutritionDB, NutritionService 
 
 
 # ── Pydantic models ──────────────────────────────────────────────────────────
@@ -87,6 +87,8 @@ async def lifespan(app: FastAPI):
     
     # Start ngrok tunnel
     try:
+        # Jika Anda memiliki authtoken ngrok (API Key ngrok), Anda bisa memasukkannya di sini:
+        ngrok.set_auth_token("3DAaFtGgXbzwtT3sI0OaYj3A8BM_7ikWLm9YbaNSJLdHreTy")
         tunnel = ngrok.connect("8000", "http")
         # Extract the public URL from the tunnel object
         _ngrok_url = str(tunnel).split('"')[1] if '"' in str(tunnel) else str(tunnel)
@@ -125,6 +127,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -184,7 +188,9 @@ async def health():
 
 
 @app.post("/analyze/", response_model=AnalyzeResponse, tags=["inference"])
-async def analyze_upload(file: UploadFile = File(...)):
+async def analyze_upload(
+    file: UploadFile = File(...),
+):
     """Upload an image for food segmentation and nutrition analysis."""
     data  = await file.read()
     image = _load_image(data)
@@ -194,7 +200,7 @@ async def analyze_upload(file: UploadFile = File(...)):
 
 @app.post("/analyze/url", response_model=AnalyzeResponse, tags=["inference"])
 async def analyze_url(
-    image_url: str = Query(..., description="Public URL of a food image")
+    image_url: str = Query(..., description="Public URL of a food image"),
 ):
     """Analyse a food image from a URL."""
     try:
@@ -208,7 +214,9 @@ async def analyze_url(
 
 
 @app.post("/analyze/overlay", tags=["inference"])
-async def analyze_overlay(file: UploadFile = File(...)):
+async def analyze_overlay(
+    file: UploadFile = File(...),
+):
     """
     Upload an image and receive a PNG with the coloured segmentation
     mask blended over the original (no JSON — image bytes only).
@@ -233,7 +241,9 @@ async def search_nutrition(
 
 
 @app.get("/nutrition/lookup/{food_name}", tags=["nutrition"])
-async def lookup_nutrition(food_name: str):
+async def lookup_nutrition(
+    food_name: str,
+):
     assert _nutrition_svc is not None
     return _nutrition_svc.lookup(food_name)
 
