@@ -16,7 +16,7 @@ MBG (Meal Based Nutrition Guide) is a diet management app designed to make healt
 
 ### 🔍 Instant Food Scanning
 - Point your camera at any meal or ingredients
-- Real-time food detection with confidence score (e.g., "pepper — 86% Match")
+- Real-time food detection with confidence score
 - Supports detection of multiple food items in a single frame
 
 ### 🧪 Nutritional Analysis
@@ -27,16 +27,15 @@ MBG (Meal Based Nutrition Guide) is a diet management app designed to make healt
 ### 📋 Detected Ingredients List
 - Lists all detected items with their calorie information
 - Each item can be individually removed from the scan result
-- Supports up to 12+ items per scan
 
 ### 📊 Daily Nutrition Tracking
-- Dashboard showing daily calorie intake (e.g., 1,840 / 2,200 kcal)
-- Visual progress bars for macronutrients (Protein, Fat, Carbs)
+- Dashboard showing daily calorie intake 
+- Visual progress bars for macronutrients
 - Recent meal history log
 
 ### 🕓 Meal History
 - View past scans and logged meals
-- Organized history for easy review (e.g., Grilled Chicken Salad, Berry Oatmeal Bowl)
+- Organized history for easy review
 
 ---
 
